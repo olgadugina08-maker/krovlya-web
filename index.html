@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Калькулятор Металл Кровля</title>
+  <meta name="description" content="Расчёт металлочерепицы, профлиста и металлосайдинга с раскладкой листов">
+  <meta name="theme-color" content="#d7202a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Металл Кровля">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="app-shell">
+  <header class="menubar">
+    <div class="brand"><span class="brand-mark">К</span><b>Калькулятор <em>Металл Кровля</em></b></div>
+
+    <nav class="menubar-menus" id="menus">
+      <div class="menu">
+        <button type="button">Файл</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="new">Новый проект</button>
+          <button type="button" data-action="import">Открыть…</button>
+          <button type="button" data-action="dwgImport">Импорт DWG…</button>
+          <button type="button" data-action="exportJson">Сохранить JSON</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="exportXls">Экспорт в Excel</button>
+          <button type="button" data-action="exportPdf">Печать / PDF</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="reset">Закрыть проект</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Правка</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="undoPoint">Отменить точку (U)</button>
+          <button type="button" data-action="duplicate">Копировать скат</button>
+          <button type="button" data-action="delete">Удалить скат</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="clear">Очистить проект</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Вид</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="zoomIn">Приблизить</button>
+          <button type="button" data-action="zoomOut">Отдалить</button>
+          <button type="button" data-action="fitView">Вписать в экран</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="toggleGrid">Сетка</button>
+          <button type="button" data-action="toggleDimensions">Размеры</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="properties">Свойства</button>
+          <button type="button" data-action="calcPanel">Панель расчёта</button>
+          <button type="button" data-action="materials">Материалы</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Вставка</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="slopeCoords">Скат по координатам…</button>
+          <button type="button" data-action="slopeSegments">Скат по отрезкам…</button>
+          <button type="button" data-action="shapeDims">Фигура по размерам</button>
+          <button type="button" data-action="cutout">Добавить вырез</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="templates">Шаблон кровли</button>
+          <button type="button" data-action="insertElement">Доборный элемент</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="insertImage">Изображение-подложка…</button>
+          <button type="button" data-action="dwgImport">Импорт DWG…</button>
+          <button type="button" data-action="toggleUnderlay">Скрыть/показать подложку</button>
+          <button type="button" data-action="deleteUnderlay">Удалить подложку</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="insertBlock">Блок…</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Формат</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="layers">Слои…</button>
+          <button type="button" data-action="units">Единицы…</button>
+          <button type="button" data-action="focusZoom">Масштаб…</button>
+          <button type="button" data-action="textStyle">Стиль текста…</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Сервис</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="toggleOrtho">Орто (F8)</button>
+          <button type="button" data-action="togglePolar">Полярное отслеживание (F10)</button>
+          <button type="button" data-action="toggleSnap">Привязка к сетке (F9)</button>
+          <button type="button" data-action="toggleOsnap">Объектная привязка (F3)</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="autoElements">Доборы по геометрии</button>
+          <button type="button" data-action="totals">Итоги проекта</button>
+          <button type="button" data-action="specification">Спецификация материалов</button>
+          <button type="button" data-action="layoutPages">Раскладка листов</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Черчение</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="polyline">Полилиния (PL)</button>
+          <button type="button" data-action="lineDraw">Отрезок (L)</button>
+          <button type="button" data-action="slopeCoords">Скат по координатам…</button>
+          <button type="button" data-action="slopeSegments">Скат по отрезкам…</button>
+          <button type="button" data-action="layoutDwgContours">Разложить материал по контурам DWG</button>
+          <button type="button" data-action="cutout">Добавить вырез</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="drawRect">Прямоугольник</button>
+          <button type="button" data-action="drawTrapezoid">Трапеция</button>
+          <button type="button" data-action="drawTriangle">Треугольник</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="focusPolar">Отрезок под углом…</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Размеры</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="showDimensions">Показать размеры</button>
+          <button type="button" data-action="hideDimensions">Скрыть размеры</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="dimLinear">Линейный размер…</button>
+          <button type="button" data-action="dimAngular">Угловой размер…</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Модификация</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="duplicate">Копировать</button>
+          <button type="button" data-action="mirror">Отразить по горизонтали</button>
+          <button type="button" data-action="rotate90">Повернуть на 90°</button>
+          <button type="button" data-action="delete">Удалить</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Окно</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="properties">Свойства элемента</button>
+          <button type="button" data-action="elementsPanel">Элементы чертежа</button>
+          <button type="button" data-action="calcPanel">Панель расчёта</button>
+          <button type="button" data-action="materials">Материалы</button>
+        </div>
+      </div>
+      <div class="menu">
+        <button type="button">Справка</button>
+        <div class="menu-dropdown">
+          <button type="button" data-action="installApp">Установить приложение</button>
+          <div class="menu-sep"></div>
+          <button type="button" data-action="hotkeys">Горячие клавиши</button>
+          <button type="button" data-action="about">О программе</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="project-fields compact">
+      <input id="projectName" type="text" placeholder="Название проекта" title="Название проекта">
+      <input id="projectCustomer" type="text" placeholder="Заказчик" title="Заказчик">
+    </div>
+  </header>
+
+  <div class="cad-toolbar">
+    <div class="cad-tools">
+      <button id="btnToolSelect" class="tool-btn active" title="Выбор элемента">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3 2l9 6.2-4.2.6L10.6 13l-1.7.9-2.7-4.3L3.6 12z" fill="currentColor"/></svg>
+      </button>
+      <button id="btnToolPolyline" class="tool-btn" title="Полилиния (PL)">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2 12l3-6 4 2 5-6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="2" cy="12" r="1.3" fill="currentColor"/><circle cx="9" cy="8" r="1.3" fill="currentColor"/></svg>
+      </button>
+      <button id="btnToolLine" class="tool-btn" title="Отрезок">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><line x1="2" y1="13" x2="14" y2="3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="2" cy="13" r="1.3" fill="currentColor"/><circle cx="14" cy="3" r="1.3" fill="currentColor"/></svg>
+      </button>
+      <button id="btnInsertShape" class="tool-btn" title="Скат по координатам">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2 3h8v6H8v4H2z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6 1h8v8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 1.6"/></svg>
+      </button>
+    </div>
+
+    <div class="cad-fields">
+      <label>Ширина материала<input id="tbWidth" type="text" readonly></label>
+      <label>Полезная<input id="tbUseful" type="text" readonly></label>
+      <label>X₀<input id="tbX" type="text" readonly></label>
+      <label>Y₀<input id="tbY" type="text" readonly></label>
+      <label>Длина ската<input id="tbLength" type="number" step="0.01" min="0.1"></label>
+      <label>Масштаб<input id="tbZoom" type="text" title="Масштаб, %"></label>
+      <div class="zoom-buttons">
+        <button type="button" id="btnZoomOut" class="zoom-btn" title="Отдалить (колесо вниз)">−</button>
+        <button type="button" id="btnZoomIn" class="zoom-btn" title="Приблизить (колесо вверх)">+</button>
+      </div>
+    </div>
+
+    <div class="cad-actions">
+      <div class="dropdown">
+        <button id="btnTemplates" class="btn ghost small">Шаблоны ▾</button>
+        <div id="templatesMenu" class="dropdown-menu hidden"></div>
+      </div>
+      <button id="btnAddSlope" class="btn small">+ Скат</button>
+      <button id="btnAddCutout" class="btn ghost small" title="Добавить вырез в выбранном скате">Добавить вырез</button>
+      <button id="btnDeleteSelected" class="btn ghost small" title="Удалить выбранный элемент (Delete)">Удалить</button>
+      <button id="btnMaterials" class="btn ghost small" title="Материалы">Материалы</button>
+      <span class="sep"></span>
+      <button id="btnExportXls" class="btn ghost small" title="Выгрузить расчёт в Excel">XLS</button>
+      <button id="btnExportPdf" class="btn ghost small" title="Печать / сохранить в PDF">PDF</button>
+      <button id="btnExportPng" class="btn ghost small" title="Скачать раскладку картинкой">PNG</button>
+      <button id="btnSaveJson" class="btn ghost small" title="Сохранить проект в файл">Сохранить</button>
+      <label class="btn ghost small" title="Загрузить проект из файла">Загрузить
+        <input id="fileImport" type="file" accept=".json,application/json" hidden>
+      </label>
+      <button id="btnImportDwg" class="btn ghost small" title="Импорт чертежа DWG">DWG</button>
+      <input id="fileUnderlay" type="file" accept="image/*" hidden>
+      <input id="fileDwg" type="file" accept=".dwg,application/acad,application/x-acad" hidden>
+    </div>
+  </div>
+
+  <main class="workbench">
+    <div class="toolrail">
+      <button id="railSelect" class="tool-btn active" title="Выбор">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3 2l9 6.2-4.2.6L10.6 13l-1.7.9-2.7-4.3L3.6 12z" fill="currentColor"/></svg>
+      </button>
+      <button id="railCoords" class="tool-btn" title="Полилиния (PL)">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2 12l3-6 4 2 5-6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="2" cy="12" r="1.3" fill="currentColor"/><circle cx="9" cy="8" r="1.3" fill="currentColor"/></svg>
+      </button>
+      <button id="railCoordsSlope" class="tool-btn" title="Скат по координатам">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3 3v10h10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 11l3-4 3 2 2-4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="5" cy="11" r="1.1" fill="currentColor"/><circle cx="13" cy="5" r="1.1" fill="currentColor"/></svg>
+      </button>
+      <button id="railLine" class="tool-btn" title="Отрезок (L)">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><line x1="2" y1="13" x2="14" y2="3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="2" cy="13" r="1.3" fill="currentColor"/><circle cx="14" cy="3" r="1.3" fill="currentColor"/></svg>
+      </button>
+      <button id="railShape" class="tool-btn" title="Вставить фигуру по размерам">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2 3h8v6H8v4H2z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6 1h8v8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 1.6"/></svg>
+      </button>
+      <button id="railMaterials" class="tool-btn" title="Материалы">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><rect x="2" y="2" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="2" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="2" y="9" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>
+      <button id="railDelete" class="tool-btn" title="Удалить (Delete)">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M3.5 4.5h9M6 4.5V3h4v1.5M5 4.5l.6 8.5h4.8l.6-8.5M6.6 6.5v4.5M9.4 6.5v4.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="canvas-area">
+      <div id="drawHint" class="draw-hint hidden">
+        <span class="draw-hint-text">ЛКМ — вершина · число + Enter — длина по направлению · поляр: угол, затем длина · X,Y — абс. · @dX,dY — отн. · L&lt;A — полярно · Enter без чисел — завершить · C — замкнуть · Shift — орто · Alt — без привязки</span>
+        <span class="polar">
+          <label>Длина, м <input id="polarLength" type="number" step="0.01" min="0" placeholder="5"></label>
+          <label>Угол, ° <input id="polarAngle" type="number" step="1" placeholder="30" title="0° — вправо, 90° — вверх, 180° — влево, -90° — вниз"></label>
+          <button id="btnPolarApply" class="btn small" type="button">Отложить</button>
+        </span>
+      </div>
+      <div class="canvas-wrap" id="canvasWrap" title="Колесо мыши — приближение/отдаление, средняя кнопка — панорамирование"></div>
+      <div class="canvas-legend">
+        <span><i class="swatch sheet"></i> лист</span>
+        <span><i class="swatch seam"></i> граница листов</span>
+        <span><i class="swatch overlap"></i> нахлёст</span>
+        <span><i class="swatch eave"></i> свес</span>
+        <span><i class="swatch sel"></i> выбранный скат</span>
+        <span class="legend-hint">Колесо — масштаб · средняя кнопка — панорама · красные маркеры меняют ширину, длину и верхнюю кромку</span>
+      </div>
+    </div>
+
+    <aside class="rightbar">
+      <details open>
+        <summary>Элементы чертежа</summary>
+        <div id="drawingElements"></div>
+      </details>
+      <details id="objectsSection">
+        <summary>Объекты чертежа <span id="objectCount" class="count-badge">0</span></summary>
+        <div class="object-actions">
+          <button type="button" id="btnLayoutDwgContours" class="btn small">Разложить материал по контурам</button>
+        </div>
+        <div id="objectList" class="object-list"></div>
+      </details>
+      <details open>
+        <summary>Свойства элемента</summary>
+        <div id="slopeProps" class="props"></div>
+      </details>
+      <details open>
+        <summary>Статистика раскладки</summary>
+        <table class="data-table" id="slopeStats"></table>
+      </details>
+      <details open>
+        <summary>Список длин</summary>
+        <table class="data-table" id="lengthList"></table>
+      </details>
+      <details open id="underlaySection" class="hidden">
+        <summary>Подложка</summary>
+        <div class="props">
+          <div class="prop-row"><label>Файл</label><span id="underlayName" class="prop-value">—</span></div>
+          <div class="prop-row"><label>Источник</label><span id="underlayMeta" class="prop-value">—</span></div>
+          <div class="prop-row"><label>X, м</label><input id="underlayX" type="number" step="0.1"></div>
+          <div class="prop-row"><label>Y, м</label><input id="underlayY" type="number" step="0.1"></div>
+          <div class="prop-row"><label>Ширина, м</label><input id="underlayW" type="number" step="0.1" min="0.1"></div>
+          <div class="prop-row"><label>Прозрачность</label><input id="underlayOpacity" type="range" min="0" max="1" step="0.05"></div>
+          <div class="prop-actions">
+            <button id="underlayDelete" class="btn danger small">Удалить подложку</button>
+          </div>
+        </div>
+      </details>
+    </aside>
+  </main>
+
+  <section class="bottom-drawer hidden" id="bottomDrawer">
+    <div class="drawer-resizer" id="drawerResizer" title="Потяните, чтобы изменить высоту панели"></div>
+    <div class="bottom-tabs">
+      <button class="tab active" data-tab="elements">Доборные элементы</button>
+      <button class="tab" data-tab="summary">Сводка по материалам</button>
+      <button class="tab" data-tab="spec">Спецификация</button>
+      <button class="tab" data-tab="layouts">Раскладка листов</button>
+      <button class="tab" data-tab="totals">Итоги проекта</button>
+      <button class="pin-btn" id="btnPinBottom" title="Закрепить панель" aria-pressed="false">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M9.2 1.2l5.6 5.6-1.8 1-2.7 2.7.9 2.8-1 1-3.6-3.6L2 15.4l-1.4-1.4 4.7-4.6-3.6-3.6 1-1 2.8.9L8.2 3z" fill="currentColor"/></svg>
+      </button>
+      <button class="drawer-close" id="btnCloseBottom" title="Свернуть панель">×</button>
+    </div>
+
+    <div class="tab-panel" id="tab-elements">
+      <div class="inline-form">
+        <select id="elementCatalog" title="Доборный элемент"></select>
+        <input id="elementQty" type="number" value="1" min="0" step="0.1" title="Количество, м или шт">
+        <button id="btnAddElement" class="btn small">Добавить</button>
+        <button id="btnAutoElements" class="btn ghost small">Доборы по геометрии</button>
+      </div>
+      <table class="data-table wide" id="elementsTable"></table>
+    </div>
+
+    <div class="tab-panel hidden" id="tab-summary">
+      <table class="data-table wide" id="summaryTable"></table>
+    </div>
+
+    <div class="tab-panel hidden" id="tab-spec">
+      <div id="specification"></div>
+    </div>
+
+    <div class="tab-panel hidden" id="tab-layouts">
+      <div class="layout-pages-actions">
+        <button id="btnPrintLayouts" class="btn small">Печать раскладки</button>
+        <span class="panel-note">Один скат — одна страница, листы вертикально.</span>
+      </div>
+      <div id="layoutPages" class="layout-pages"></div>
+    </div>
+
+    <div class="tab-panel hidden" id="tab-totals">
+      <div id="totalsGrid" class="totals-grid"></div>
+    </div>
+  </section>
+
+  <footer class="statusbar">
+    <div class="sheet-tabs" id="sheetTabs"></div>
+    <div class="status-toggles">
+      <button class="status-btn active" data-toggle="snap" title="Привязка к сетке (F9)">ПРИВЯЗКА</button>
+      <button class="status-btn active" data-toggle="osnap" title="Объектная привязка (F3)">ОСНАП</button>
+      <button class="status-btn" data-toggle="ortho" title="Орто (F8)">ОРТО</button>
+      <button class="status-btn" data-toggle="polar" title="Полярное отслеживание (F10)">ПОЛЯР</button>
+      <select class="status-select" id="snapStep" title="Шаг привязки, м">
+        <option value="0.05">0,05</option>
+        <option value="0.1" selected>0,1</option>
+        <option value="0.25">0,25</option>
+        <option value="0.5">0,5</option>
+        <option value="1">1</option>
+      </select>
+      <select class="status-select" id="polarStep" title="Шаг полярного угла">
+        <option value="15" selected>15°</option>
+        <option value="30">30°</option>
+        <option value="45">45°</option>
+        <option value="90">90°</option>
+      </select>
+    </div>
+    <div class="status-actions">
+      <button class="status-btn" id="btnToggleCalc">Расчёт</button>
+    </div>
+    <div class="status-info" id="statusInfo"></div>
+  </footer>
+
+  <aside class="drawer hidden" id="materialsDrawer">
+    <div class="drawer-head">
+      <span>Материалы</span>
+      <button class="icon-btn" id="btnCloseMaterials" title="Закрыть">×</button>
+    </div>
+    <div class="panel-head">
+      <h2>Справочник материалов</h2>
+      <button id="btnAddMaterial" class="icon-btn" title="Добавить материал">+</button>
+    </div>
+    <div class="tabs" id="materialTabs"></div>
+    <div class="list" id="materialsList"></div>
+    <p class="panel-note">Материал назначается скату в свойствах элемента.</p>
+  </aside>
+
+  <div id="modalRoot"></div>
+  <div id="printReport" class="print-report"></div>
+
+  <script src="js/materials.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/templates.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/exportXLS.js"></script>
+  <script src="js/exportPDF.js"></script>
+  <script src="js/dwgImport.js"></script>
+  <script src="js/shapeLibrary.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
