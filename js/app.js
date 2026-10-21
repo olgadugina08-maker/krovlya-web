@@ -2789,6 +2789,30 @@
     const defX = Number(((width - defW) / 2).toFixed(2));
     const defY = Number(((height - defH) / 2).toFixed(2));
     const existingList = Array.isArray(slope.cutouts) ? slope.cutouts : [];
+    // Координаты выреза задаются от нижнего левого угла ската:
+    // X — вправо, Y — вверх. Внутри проекта ось Y растёт вниз,
+    // поэтому при вводе переворачиваем её относительно нижней кромки.
+    const contourBounds = function () {
+      const pts = KP.slopePoints(slope);
+      let left = Infinity;
+      let bottom = -Infinity;
+      pts.forEach(function (p) {
+        const px = KP.num(p[0]);
+        const py = KP.num(p[1]);
+        if (px < left) left = px;
+        if (py > bottom) bottom = py;
+      });
+      return {
+        left: Number.isFinite(left) ? left : 0,
+        bottom: Number.isFinite(bottom) ? bottom : 0
+      };
+    };
+    const userToLocal = function (points) {
+      const bounds = contourBounds();
+      return (points || []).map(function (p) {
+        return { x: bounds.left + KP.num(p.x), y: bounds.bottom - KP.num(p.y) };
+      });
+    };
     const objects = (project.objects || []).filter(function (obj) {
       return obj.kind === 'circle' || (Array.isArray(obj.points) && obj.points.length >= 3);
     });
@@ -2821,7 +2845,7 @@
           (existingList.length + 1) + '"></div>' +
       '</div>' +
       '<div class="shape-pane" data-cut-pane="coords">' +
-        '<p class="shape-hint">Вершины в метрах относительно левого верхнего угла ската (0;0 — верхний левый угол контура). ' +
+        '<p class="shape-hint">Вершины в метрах относительно левого нижнего угла ската (0;0 — нижний левый угол контура, ось Y — вверх). ' +
           'Контур замыкается автоматически.</p>' +
         '<textarea id="cutCoords" spellcheck="false">' + escText(formatCoords(defaultRect)) + '</textarea>' +
       '</div>' +
@@ -2837,7 +2861,7 @@
           '<div class="field"><label>Ширина, м</label><input id="cutWidth" type="number" step="0.01" min="0.1" value="' + defW + '"></div>' +
           '<div class="field"><label>Высота, м</label><input id="cutHeight" type="number" step="0.01" min="0.1" value="' + defH + '"></div>' +
           '<div class="field"><label>Смещение X, м</label><input id="cutOffsetX" type="number" step="0.01" value="' + defX + '"></div>' +
-          '<div class="field"><label>Смещение Y, м</label><input id="cutOffsetY" type="number" step="0.01" value="' + defY + '"></div>' +
+          '<div class="field"><label>Смещение Y от низа, м</label><input id="cutOffsetY" type="number" step="0.01" value="' + defY + '"></div>' +
           '<div class="field hidden" id="cutTopField"><label>Верхняя ширина, м</label><input id="cutTop" type="number" step="0.01" min="0" value="' +
             Number((defW * 0.6).toFixed(2)) + '"></div>' +
         '</div>' +
@@ -2876,19 +2900,17 @@
       const offsetX = KP.num($('#cutOffsetX').value);
       const offsetY = KP.num($('#cutOffsetY').value);
       if (!(cutW > 0) || !(cutH > 0)) return null;
+      let points;
       if (kind === 'circle') {
-        const points = [];
+        points = [];
         for (let i = 0; i < 32; i += 1) {
           const a = i / 32 * Math.PI * 2;
           points.push({
-            x: offsetX + cutW / 2 + cutW / 2 * Math.cos(a),
-            y: offsetY + cutH / 2 + cutH / 2 * Math.sin(a)
+            x: cutW / 2 + cutW / 2 * Math.cos(a),
+            y: cutH / 2 + cutH / 2 * Math.sin(a)
           });
         }
-        return points;
-      }
-      let points;
-      if (kind === 'library') {
+      } else if (kind === 'library') {
         const item = shapeLibraryItem(selectedLibraryKey);
         if (!item) return null;
         points = scaleLibraryPoints(item, cutW, cutH).map(function (p) {
@@ -2899,8 +2921,10 @@
           return { x: p[0], y: p[1] };
         });
       }
+      // Пользовательские координаты: (0;0) — левый нижний угол ската,
+      // ось Y вверх, поэтому фигуру отражаем по вертикали.
       return points.map(function (p) {
-        return { x: p.x + offsetX, y: p.y + offsetY };
+        return { x: p.x + offsetX, y: offsetY + (cutH - p.y) };
       });
     }
 
@@ -2915,10 +2939,11 @@
     }
 
     function collectPoints() {
-      if (mode === 'template') return templatePoints();
+      if (mode === 'template') return userToLocal(templatePoints());
       if (mode === 'dwg') return dwgPoints();
       const textarea = $('#cutCoords');
-      return textarea ? parseCoordPoints(textarea.value) : null;
+      const parsed = textarea ? parseCoordPoints(textarea.value) : null;
+      return parsed ? userToLocal(parsed) : parsed;
     }
 
     function slopeContourLocal() {
