@@ -1,5 +1,5 @@
 /* Service worker: офлайн-работа калькулятора (PWA) */
-const CACHE_NAME = 'krovlya-app-shell-23';
+const CACHE_NAME = 'krovlya-app-shell-24';
 const ASSETS = [
   './',
   './index.html',

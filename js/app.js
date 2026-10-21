@@ -2468,6 +2468,29 @@
     }).join('\n');
   }
 
+  // Пользовательские координаты: (0;0) — левый нижний угол, X — вправо,
+  // Y — вверх. Внутри проекта Y направлена вниз (экранная система SVG),
+  // поэтому на вводе и выводе координаты переворачиваются.
+  function pointsHeight(points) {
+    const ys = (points || []).map(function (p) { return KP.num(p[1]); });
+    if (!ys.length) return 0;
+    return Math.max.apply(null, ys) - Math.min.apply(null, ys);
+  }
+
+  function pointsToUser(points, height) {
+    const h = Number.isFinite(Number(height)) ? Number(height) : pointsHeight(points);
+    return (points || []).map(function (p) {
+      return [KP.num(p[0]), Number((h - KP.num(p[1])).toFixed(3))];
+    });
+  }
+
+  function pointsFromUser(points) {
+    const list = (points || []).map(function (p) { return [KP.num(p[0]), KP.num(p[1])]; });
+    const ys = list.map(function (p) { return p[1]; });
+    const maxY = ys.length ? Math.max.apply(null, ys) : 0;
+    return list.map(function (p) { return [p[0], Number((maxY - p[1]).toFixed(3))]; });
+  }
+
   function openShapeModal(existingSlope, startMode, preferredKind) {
     const isEdit = !!existingSlope;
     const base = existingSlope || KP.newSlope(project, activeMaterialId);
@@ -2495,8 +2518,9 @@
       '</div>' +
       '<div class="shape-pane' + (initialMode === 'coords' ? '' : ' hidden') + '" data-pane="coords">' +
         '<p class="shape-hint">Вершины контура в метрах: «X;Y» по одной на строку или списком. ' +
+        'X — вправо, Y — вверх, (0;0) — левый нижний угол контура. ' +
         'Контур замыкается автоматически, координаты нормализуются к нулю.</p>' +
-        '<textarea id="shapeCoords" spellcheck="false">' + formatCoords(startPoints) + '</textarea>' +
+        '<textarea id="shapeCoords" spellcheck="false">' + formatCoords(pointsToUser(startPoints)) + '</textarea>' +
         '<div class="shape-preview" id="shapePreview"></div>' +
       '</div>' +
       '<div class="shape-pane' + (initialMode === 'dims' ? '' : ' hidden') + '" data-pane="dims">' +
@@ -2549,7 +2573,7 @@
       $('#shapeWidth').value = widthValue;
       $('#shapeHeight').value = heightValue;
       $('#shapeKind').value = 'library';
-      $('#shapeCoords').value = formatCoords(scaleLibraryPoints(item, widthValue, heightValue));
+      $('#shapeCoords').value = formatCoords(pointsToUser(scaleLibraryPoints(item, widthValue, heightValue)));
       dimsTouched = true;
       markLibraryTiles();
       updateKindFields();
@@ -2585,7 +2609,7 @@
         if (!item) return;
         const w = Math.max(0.1, KP.num($('#shapeWidth').value) || item.width);
         const h = Math.max(0.1, KP.num($('#shapeHeight').value) || item.height);
-        $('#shapeCoords').value = formatCoords(scaleLibraryPoints(item, w, h));
+        $('#shapeCoords').value = formatCoords(pointsToUser(scaleLibraryPoints(item, w, h)));
         preview();
         return;
       }
@@ -2596,7 +2620,7 @@
         KP.num($('#shapeTop').value),
         KP.num($('#shapeSlant').value)
       );
-      $('#shapeCoords').value = formatCoords(pts);
+      $('#shapeCoords').value = formatCoords(pointsToUser(pts));
       preview();
     }
 
@@ -2612,7 +2636,8 @@
       let slope = existingSlope;
 
       if (mode === 'coords') {
-        const pts = parseCoordPoints($('#shapeCoords').value);
+        const userPoints = parseCoordPoints($('#shapeCoords').value);
+        const pts = userPoints ? pointsFromUser(userPoints) : null;
         if (!pts) {
           alert('Введите минимум 3 вершины в формате X;Y.');
           return false;
@@ -3254,8 +3279,16 @@
     const initialPoints = existingSlope
       ? KP.slopePoints(existingSlope).map(function (p) { return { x: p[0], y: p[1] }; })
       : [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 5 }, { x: 0, y: 5 }];
+    // В диалоге Y направлена вверх (от карниза к коньку), внутри проекта —
+    // вниз, поэтому при показе и сохранении переворачиваем координаты.
+    const initialHeight = initialPoints.reduce(function (max, p) {
+      return Math.max(max, KP.num(p.y));
+    }, 0);
     const rows = initialPoints.map(function (p) {
-      return { x: Number(KP.num(p.x).toFixed(3)), y: Number(KP.num(p.y).toFixed(3)) };
+      return {
+        x: Number(KP.num(p.x).toFixed(3)),
+        y: Number((initialHeight - KP.num(p.y)).toFixed(3))
+      };
     });
     const nameValue = isEdit ? String(baseSlope.name || 'Скат') : nextSlopeName();
 
@@ -3268,8 +3301,8 @@
             '<div class="field"><label>Материал</label><select id="coordMaterial">' +
               materialOptionList(materialId) + '</select></div>' +
           '</div>' +
-          '<p class="shape-hint">Введите координаты вершин контура в метрах. ' +
-            'Порядок обхода — по часовой или против часовой стрелки. ' +
+          '<p class="shape-hint">Введите координаты вершин контура в метрах: X — вправо, Y — вверх, ' +
+            '(0;0) — левый нижний угол контура. Порядок обхода — по часовой или против часовой стрелки. ' +
             'Контур замыкается автоматически, координаты нормализуются к (0; 0).</p>' +
           '<table class="segments-table coords-table">' +
             '<thead><tr><th>№</th><th>X, м</th><th>Y, м</th><th>Отрезок, м</th><th></th></tr></thead>' +
@@ -3342,12 +3375,15 @@
         });
       }
 
-      const pts = cleanRows();
-      if (pts.length < 2) {
+      const userPts = cleanRows();
+      if (userPts.length < 2) {
         previewBox.innerHTML = '<div class="coords-empty">Введите координаты минимум двух вершин</div>';
-        summaryBox.textContent = 'Вершин: ' + pts.length + ' · пока нельзя построить контур';
+        summaryBox.textContent = 'Вершин: ' + userPts.length + ' · пока нельзя построить контур';
         return;
       }
+      // Предпросмотр рисуется в экранных координатах, поэтому
+      // отражаем Y, чтобы верх на картинке соответствовал верху ската.
+      const pts = userPts.map(function (p) { return { x: p.x, y: -p.y }; });
 
       const xs = pts.map(function (p) { return p.x; });
       const ys = pts.map(function (p) { return p.y; });
@@ -3423,11 +3459,15 @@
     }
 
     openModal(isEdit ? 'Скат по координатам' : 'Новый скат по координатам', body, function () {
-      const pts = cleanRows();
-      if (pts.length < 3) {
+      const userPts = cleanRows();
+      if (userPts.length < 3) {
         alert('Введите минимум 3 вершины контура.');
         return false;
       }
+      const userMaxY = userPts.reduce(function (max, p) { return Math.max(max, p.y); }, 0);
+      const pts = userPts.map(function (p) {
+        return { x: p.x, y: Number((userMaxY - p.y).toFixed(3)) };
+      });
       const norm = KP.normalizePoints(pts);
       if (!(norm.width > 0) || !(norm.height > 0) || KP.polygonArea(norm.points) < 0.05) {
         alert('Не удалось построить скат: проверьте координаты вершин.');
@@ -4572,8 +4612,30 @@
     persist();
   }
 
+  // Переворот координат контуров и вырезов между пользовательской
+  // (Y вверх) и внутренней (Y вниз) системами. Операция симметричная.
+  function flipProjectCoords(source) {
+    const data = JSON.parse(JSON.stringify(source));
+    (data.slopes || []).forEach(function (slope) {
+      const pts = Array.isArray(slope.points) ? slope.points : [];
+      if (!pts.length) return;
+      const ys = pts.map(function (p) { return KP.num(p.y); });
+      const maxY = Math.max.apply(null, ys);
+      const flip = function (p) {
+        return { x: Number(KP.num(p.x).toFixed(3)), y: Number((maxY - KP.num(p.y)).toFixed(3)) };
+      };
+      slope.points = pts.map(flip);
+      (slope.cutouts || []).forEach(function (cut) {
+        if (Array.isArray(cut.points)) cut.points = cut.points.map(flip);
+      });
+    });
+    return data;
+  }
+
   function downloadJson() {
-    const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+    const data = flipProjectCoords(project);
+    data.coords = 'y-up';
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'krovlya_' + (project.name || 'project').replace(/[\\/:*?"<>|]+/g, '-') + '.json';
@@ -4585,7 +4647,9 @@
     const reader = new FileReader();
     reader.onload = function () {
       try {
-        const data = JSON.parse(reader.result);
+        const parsed = JSON.parse(reader.result);
+        const data = parsed && parsed.coords === 'y-up' ? flipProjectCoords(parsed) : parsed;
+        if (data && typeof data === 'object') delete data.coords;
         project = KP.normalizeProject(data);
         selectedId = project.slopes.length ? project.slopes[0].id : null;
         selectedObjectId = null;
