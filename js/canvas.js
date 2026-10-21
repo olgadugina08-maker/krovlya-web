@@ -481,18 +481,19 @@
         const eaveIntervals = eaveXIntervals(slope, lay.w);
         // Длины листов подбираются по каждой полосе отдельно: на треугольных
         // скатах и у вырезов высота полосы своя, поэтому и лист свой.
-        const stripeRows = function (height) {
+        // Ряды укладываются от карниза вверх — лист подрезается по контуру.
+        const stripeRows = function (height, eaveY) {
           const lengths = KP.applySheetDeltas(
             KP.sheetLengths(height, material, KP.num(slope.rounding)),
             slope.sheetLengthDeltas,
             material
           );
           const rows = [];
-          let y = 0;
-          for (let r = lengths.length - 1; r >= 0; r--) {
-            const length = Math.max(0, lengths[r]);
-            rows.push({ length: length, top: y, bottom: y + length });
-            y += Math.max(0, length - lockOverlap);
+          let bottom = eaveY;
+          for (let i = 0; i < lengths.length; i++) {
+            const length = Math.max(0, lengths[i]);
+            rows.push({ length: length, top: bottom - length, bottom: bottom });
+            bottom -= Math.max(0, length - lockOverlap);
           }
           return rows;
         };
@@ -519,14 +520,16 @@
           const span = KP.spanAt(slope, localX);
           const spanTop = lay.y + (lay.h - span.top);
           const spanBottom = lay.y + (lay.h - span.bottom);
-          const rows = stripeRows(span.length);
+          // Высота полосы — по правилу подрезки выбранного ската.
+          const stripeHeight = KP.stripHeight(slope, x0 - lay.x, x1 - lay.x);
+          const rows = stripeRows(stripeHeight, spanBottom);
           // Подпись — полная длина листа, включая скрытую часть под
           // нахлёстом. Для треугольных скатов и вырезов длина считается
           // по своей полосе, поэтому подписи у полос разные.
           if (width > 0.28) {
             rows.forEach(function (row) {
-              const from = Math.max(spanTop + row.top, spanTop);
-              const to = Math.min(spanTop + row.bottom, spanBottom);
+              const from = Math.max(row.top, spanTop);
+              const to = Math.min(row.bottom, spanBottom);
               if (to - from <= 0.22) return;
               const labelY = (from + to) / 2;
               const labelSize = Math.min(0.20, (to - from) * 0.5, width * 0.6).toFixed(3);
@@ -542,13 +545,13 @@
           // перекрывает нижележащий на lockOverlap.
           rows.forEach(function (row, rowIndex) {
             if (rowIndex === rows.length - 1) return;
-            const y = spanTop + row.bottom;
+            const y = row.top;
             if (y > spanBottom + 1e-6) return;
             body += '<line x1="' + x0.toFixed(4) + '" y1="' + y.toFixed(4) +
                     '" x2="' + x1.toFixed(4) + '" y2="' + y.toFixed(4) +
                     '" stroke="#e08a8f" stroke-width="0.03" stroke-dasharray="0.12 0.08"/>';
             if (lockOverlap > 1e-6) {
-              hiddenHorizontal += '<rect x="' + x0.toFixed(4) + '" y="' + y.toFixed(4) +
+              hiddenHorizontal += '<rect x="' + x0.toFixed(4) + '" y="' + (y - lockOverlap).toFixed(4) +
                 '" width="' + width.toFixed(4) + '" height="' + lockOverlap.toFixed(4) +
                 '" fill="rgba(215,32,42,0.05)" stroke="#c96a70" stroke-width="0.022" stroke-dasharray="0.09 0.07"/>';
             }

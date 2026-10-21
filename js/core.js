@@ -189,6 +189,8 @@
       }
       s.rounding = KP.num(s.rounding);
       s.angle = KP.num(s.angle) || 30;
+      s.layoutRule = s.layoutRule === 'center' || s.layoutRule === 'hybrid' || s.layoutRule === 'min'
+        ? s.layoutRule : 'min';
       s.sourceObjectId = s.sourceObjectId || null;
       s.inPlace = !!s.inPlace;
       if (s.inPlace && s.anchor && Number.isFinite(Number(s.anchor.x)) && Number.isFinite(Number(s.anchor.y))) {
@@ -466,6 +468,45 @@
     return KP.spanAt(slope, x).length;
   };
 
+  // Минимальная высота ската в интервале [x0, x1]. По ней подбирается
+  // длина листа на диагональных кромках: лист подрезается по контуру
+  // «лесенкой» и не выходит за него.
+  KP.minSpanLength = function (slope, x0, x1) {
+    const from = Math.min(x0, x1);
+    const to = Math.max(x0, x1);
+    const width = Math.max(0.0001, KP.num(slope.width));
+    const xs = [from, to];
+    const samples = 12;
+    for (let i = 1; i < samples; i++) xs.push(from + (to - from) * i / samples);
+    if (slope.shape === 'polygon' && Array.isArray(slope.points)) {
+      slope.points.forEach(function (p) {
+        const x = KP.num(p.x);
+        if (x > from && x < to) xs.push(x);
+      });
+    }
+    let min = Infinity;
+    xs.forEach(function (value) {
+      const x = Math.max(0.0001, Math.min(width - 0.0001, value));
+      const span = KP.spanAt(slope, x);
+      if (span.length < min) min = span.length;
+    });
+    return Number.isFinite(min) ? min : 0;
+  };
+
+  // Правило подбора длины в полосе (подрезка на диагональном контуре):
+  //   min    — по самому узкому месту полосы (лист целиком внутри контура);
+  //   center — по высоте в середине полосы (как в спецификации);
+  //   hybrid — по узкому месту только у крайних полос, остальные по центру.
+  KP.stripHeight = function (slope, x0, x1) {
+    const rule = slope && slope.layoutRule === 'center' ? 'center'
+      : (slope && slope.layoutRule === 'hybrid' ? 'hybrid' : 'min');
+    const width = KP.num(slope.width);
+    const edgeStrip = x0 <= 0.0001 || x1 >= width - 0.0001;
+    if (rule === 'center') return KP.heightAt(slope, (x0 + x1) / 2);
+    if (rule === 'hybrid' && !edgeStrip) return KP.heightAt(slope, (x0 + x1) / 2);
+    return KP.minSpanLength(slope, x0, x1);
+  };
+
   KP.columnCount = function (slope, usefulWidth) {
     const w = KP.num(slope.width);
     const uw = KP.num(usefulWidth) || 1;
@@ -565,8 +606,8 @@
       const x0 = i * usefulWidth;
       const x1 = Math.min(width, (i + 1) * usefulWidth);
       if (x1 - x0 <= 1e-9) continue;
-      const xc = (x0 + x1) / 2;
-      const height = KP.heightAt(slope, xc);
+      // Длина листа — по правилу подрезки выбранного ската.
+      const height = KP.stripHeight(slope, x0, x1);
       if (height <= 1e-6) continue;
       usefulLength += height;
       const lengths = KP.applySheetDeltas(

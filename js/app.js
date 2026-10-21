@@ -868,6 +868,11 @@
         '<option value="left"' + (!startRight ? ' selected' : '') + '>Слева направо</option>' +
         '<option value="right"' + (startRight ? ' selected' : '') + '>Справа налево</option>' +
       '</select></div>' +
+      '<div class="prop-row prop-row-wide"><label>Подрезка листов</label><select id="sLayoutRule">' +
+        '<option value="min"' + ((slope.layoutRule || 'min') === 'min' ? ' selected' : '') + '>По контуру (лесенкой)</option>' +
+        '<option value="center"' + (slope.layoutRule === 'center' ? ' selected' : '') + '>По центру полосы</option>' +
+        '<option value="hybrid"' + (slope.layoutRule === 'hybrid' ? ' selected' : '') + '>Комбинированная</option>' +
+      '</select></div>' +
       (material ? sheetLengthsSectionHtml(slope, material) : '') +
       (slope.layoutMode === 'edge' && slope.eaveEdge != null && slope.ridgeEdge != null
         ? '<div class="prop-row"><label>Ориентация</label><span class="prop-value">карниз — ребро ' +
@@ -970,6 +975,13 @@
     $('#sLayoutOrder').addEventListener('change', function (ev) {
       setSlopeLayoutOrder(slope, ev.target.value === 'right');
     });
+    if ($('#sLayoutRule')) {
+      $('#sLayoutRule').addEventListener('change', function (ev) {
+        slope.layoutRule = ev.target.value;
+        slope.sheetLengthDeltas = [];
+        renderAll();
+      });
+    }
     box.querySelectorAll('[data-sheet-step]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         adjustSheetLength(
