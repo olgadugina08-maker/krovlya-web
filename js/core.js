@@ -114,6 +114,24 @@
       return item;
     });
     if (!Array.isArray(result.slopes)) result.slopes = [];
+    // Старые проекты хранили контуры с осью Y вниз. Переводим их
+    // в текущую систему (Y вверх) один раз и помечаем проект.
+    if (result.coords !== 'y-up') {
+      result.slopes.forEach(function (slope) {
+        const pts = Array.isArray(slope.points) ? slope.points : [];
+        if (!pts.length) return;
+        const ys = pts.map(function (p) { return KP.num(p.y); });
+        const maxY = Math.max.apply(null, ys);
+        const flip = function (p) {
+          return { x: Number(KP.num(p.x).toFixed(3)), y: Number((maxY - KP.num(p.y)).toFixed(3)) };
+        };
+        slope.points = pts.map(flip);
+        (slope.cutouts || []).forEach(function (cut) {
+          if (Array.isArray(cut.points)) cut.points = cut.points.map(flip);
+        });
+      });
+      result.coords = 'y-up';
+    }
     if (!Array.isArray(result.objects)) result.objects = [];
     if (!Array.isArray(result.elements)) result.elements = [];
     result.objects = result.objects.map(function (obj) {
@@ -372,7 +390,8 @@
     }, 0);
   };
 
-  /* Локальные точки контура фигуры (x: 0..width, y: 0..height) */
+  /* Локальные точки контура фигуры: X вправо, Y вверх, (0;0) — левый
+     нижний угол. Для шаблонов конёк (верхняя кромка) лежит при y = height. */
   KP.slopePoints = function (slope) {
     const w = KP.num(slope.width);
     const h = KP.num(slope.height);
@@ -380,11 +399,11 @@
       return slope.points.map(function (p) { return [KP.num(p.x), KP.num(p.y)]; });
     }
     if (slope.shape === 'triangle') {
-      return [[w / 2, 0], [w, h], [0, h]];
+      return [[w / 2, h], [w, 0], [0, 0]];
     }
     if (slope.shape === 'trapezoid') {
       const tw = Math.max(0, Math.min(KP.num(slope.topWidth), w));
-      return [[(w - tw) / 2, 0], [(w + tw) / 2, 0], [w, h], [0, h]];
+      return [[(w - tw) / 2, h], [(w + tw) / 2, h], [w, 0], [0, 0]];
     }
     return [[0, 0], [w, 0], [w, h], [0, h]];
   };
@@ -419,7 +438,9 @@
     return h * Math.max(0, (half - dx) / edge);
   };
 
-  /* Вертикальный участок фигуры в точке x: { top, bottom, length } */
+  /* Вертикальный участок фигуры в точке x: { top, bottom, length }.
+     Система координат — Y вверх: bottom — карниз (меньшее y),
+     top — конёк (большее y). */
   KP.spanAt = function (slope, x) {
     if (slope.shape === 'polygon' && Array.isArray(slope.points) && slope.points.length >= 3) {
       const pts = slope.points;
@@ -433,13 +454,12 @@
         }
       }
       if (ys.length < 2) return { top: 0, bottom: 0, length: 0 };
-      const top = Math.min.apply(null, ys);
-      const bottom = Math.max.apply(null, ys);
-      return { top: top, bottom: bottom, length: Math.max(0, bottom - top) };
+      const top = Math.max.apply(null, ys);
+      const bottom = Math.min.apply(null, ys);
+      return { top: top, bottom: bottom, length: Math.max(0, top - bottom) };
     }
     const length = Math.max(0, KP._heightAtBase(slope, x));
-    const bottom = KP.num(slope.height);
-    return { top: Math.max(0, bottom - length), bottom: bottom, length: length };
+    return { top: length, bottom: 0, length: length };
   };
 
   KP.heightAt = function (slope, x) {

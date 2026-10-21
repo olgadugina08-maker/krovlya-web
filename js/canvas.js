@@ -18,10 +18,12 @@
       .replace(/"/g, '&quot;');
   }
 
+  // Локальные координаты ската — X вправо, Y вверх; экран (SVG) — Y вниз,
+  // поэтому при выводе ордината переворачивается относительно высоты ската.
   function pointsOf(layout) {
     const local = KP.slopePoints(layout.slope);
     return local.map(function (p) {
-      return [layout.x + p[0], layout.y + p[1]];
+      return [layout.x + p[0], layout.y + (layout.h - p[1])];
     });
   }
 
@@ -63,7 +65,7 @@
       if (!cut || !Array.isArray(cut.points) || cut.points.length < 3) return;
       if (KP.polygonArea(cut.points) <= 1e-6) return;
       const pts = cut.points.map(function (p) {
-        return [layout.x + KP.num(p.x), layout.y + KP.num(p.y)];
+        return [layout.x + KP.num(p.x), layout.y + (layout.h - KP.num(p.y))];
       });
       d += ' ' + pathFromPoints(pts);
     });
@@ -75,7 +77,8 @@
   // наклонные рёбра не должны давать диагональный «свес». На вырезах — разрыв.
   function eaveXIntervals(slope, width) {
     const limit = Math.max(0, KP.num(width));
-    if (slope.shape !== 'polygon') return [{ from: 0, to: limit, y: KP.num(slope.height) }];
+    // Ось Y направлена вверх: карниз простых фигур лежит при y = 0.
+    if (slope.shape !== 'polygon') return [{ from: 0, to: limit, y: 0 }];
     const points = KP.slopePoints(slope);
     if (points.length < 2) return [];
     const types = Array.isArray(slope.edgeTypes) ? slope.edgeTypes : [];
@@ -96,7 +99,8 @@
       const to = Math.min(limit, Math.max(ax, bx));
       if (to - from <= 1e-6) return;
       const isHorizontal = Math.abs(by - ay) <= Math.max(0.04, Math.abs(bx - ax) * 0.12);
-      const isLower = Math.min(ay, by) >= midY;
+      // Ось Y направлена вверх, поэтому нижняя кромка — та, у которой меньше y.
+      const isLower = Math.max(ay, by) <= midY;
       if (isHorizontal && isLower) intervals.push({ from: from, to: to, y: (ay + by) / 2 });
     });
     if (!intervals.length) {
@@ -124,49 +128,6 @@
     return merged;
   }
 
-  // Единая сетка рядов по скату. Ряды откладываются от верхней кромки,
-  // поэтому горизонтальные стыки идут одной линией по всей ширине ската,
-  // а не «ступеньками» на каждой полосе (важно для фигурных и треугольных
-  // скатов). Длины листов берутся из общей раскладки ската.
-  function rowGrid(slope, lay, material, lockOverlap) {
-    const samples = 64;
-    const xs = [];
-    for (let i = 0; i <= samples; i++) xs.push((i / samples) * lay.w);
-    // Вершины контура — чтобы точно поймать минимальную и максимальную кромку.
-    if (slope.shape === 'polygon' && Array.isArray(slope.points)) {
-      slope.points.forEach(function (p) { xs.push(KP.num(p.x)); });
-    }
-    let minTop = Infinity;
-    let maxBottom = -Infinity;
-    xs.forEach(function (value) {
-      const x = Math.max(0.0001, Math.min(lay.w - 0.0001, value));
-      const span = KP.spanAt(slope, x);
-      if (!(span.length > 1e-6)) return;
-      if (span.top < minTop) minTop = span.top;
-      if (span.bottom > maxBottom) maxBottom = span.bottom;
-    });
-    if (!Number.isFinite(minTop) || !Number.isFinite(maxBottom)) return null;
-    const gridHeight = Math.max(0, maxBottom - minTop);
-    if (gridHeight <= 1e-6) return null;
-    const lengths = KP.applySheetDeltas(
-      KP.sheetLengths(gridHeight, material, KP.num(slope.rounding)),
-      slope.sheetLengthDeltas,
-      material
-    );
-    const rows = [];
-    let yTop = lay.y + minTop;
-    for (let r = lengths.length - 1; r >= 0; r--) {
-      const length = Math.max(0, lengths[r]);
-      rows.push({ length: length, top: yTop, bottom: yTop + length });
-      yTop += Math.max(0, length - lockOverlap);
-    }
-    return {
-      lengths: lengths,
-      rows: rows,
-      top: lay.y + minTop,
-      bottom: lay.y + maxBottom
-    };
-  }
 
   function objectBoundsOf(objects) {
     let minX = Infinity;
@@ -556,8 +517,8 @@
           const xc = (x0 + x1) / 2;
           const localX = xc - lay.x;
           const span = KP.spanAt(slope, localX);
-          const spanTop = lay.y + span.top;
-          const spanBottom = lay.y + span.bottom;
+          const spanTop = lay.y + (lay.h - span.top);
+          const spanBottom = lay.y + (lay.h - span.bottom);
           const rows = stripeRows(span.length);
           // Подпись — полная длина листа, включая скрытую часть под
           // нахлёстом. Для треугольных скатов и вырезов длина считается
@@ -602,13 +563,13 @@
             // Для triangle/trapezoid KP.spanAt возвращает top = height - length.
             const hiddenSpan = KP.spanAt(slope, Math.max(0.0001, Math.min(lay.w - 0.0001, hiddenEdge)));
             if (hx1 - hx0 > 1e-6 && hiddenSpan.length > 1e-6) {
-              hiddenVertical += '<rect x="' + hx0.toFixed(4) + '" y="' + (lay.y + hiddenSpan.top).toFixed(4) +
+              hiddenVertical += '<rect x="' + hx0.toFixed(4) + '" y="' + (lay.y + (lay.h - hiddenSpan.top)).toFixed(4) +
                 '" width="' + (hx1 - hx0).toFixed(4) + '" height="' + hiddenSpan.length.toFixed(4) +
                 '" fill="rgba(215,32,42,0.07)" stroke="#c96a70" stroke-width="0.022" stroke-dasharray="0.09 0.07"/>';
               if (hiddenEdge >= 0 && hiddenEdge <= lay.w) {
                 hiddenVertical += '<line x1="' + (lay.x + hiddenEdge).toFixed(4) + '" y1="' +
-                  (lay.y + hiddenSpan.top).toFixed(4) + '" x2="' + (lay.x + hiddenEdge).toFixed(4) +
-                  '" y2="' + (lay.y + hiddenSpan.bottom).toFixed(4) +
+                  (lay.y + (lay.h - hiddenSpan.top)).toFixed(4) + '" x2="' + (lay.x + hiddenEdge).toFixed(4) +
+                  '" y2="' + (lay.y + (lay.h - hiddenSpan.bottom)).toFixed(4) +
                   '" stroke="#c96a70" stroke-width="0.026" stroke-dasharray="0.12 0.08"/>';
               }
             }
@@ -621,14 +582,14 @@
             const hiddenEdge = hiddenWidth > 1e-6 ? edgeB + dir * hiddenWidth : null;
             const bottomAt = function (localX) {
               const safeX = Math.max(0.0001, Math.min(lay.w - 0.0001, localX));
-              return lay.y + KP.spanAt(slope, safeX).bottom;
+              return lay.y + (lay.h - KP.spanAt(slope, safeX).bottom);
             };
             eaveIntervals.forEach(function (eave) {
               const from = Math.max(segFrom, eave.from);
               const to = Math.min(segTo, eave.to);
               if (to - from <= 1e-6) return;
-              const bottomFrom = eave.y != null ? lay.y + eave.y : bottomAt(from);
-              const bottomTo = eave.y != null ? lay.y + eave.y : bottomAt(to);
+              const bottomFrom = eave.y != null ? lay.y + (lay.h - eave.y) : bottomAt(from);
+              const bottomTo = eave.y != null ? lay.y + (lay.h - eave.y) : bottomAt(to);
               overhangMarkup += '<polygon points="' + (lay.x + from).toFixed(4) + ',' + bottomFrom.toFixed(4) + ' ' +
                 (lay.x + to).toFixed(4) + ',' + bottomTo.toFixed(4) + ' ' +
                 (lay.x + to).toFixed(4) + ',' + (bottomTo + eaveOverhang).toFixed(4) + ' ' +
@@ -638,8 +599,8 @@
               const hFrom = Math.max(Math.min(edgeB, hiddenEdge), eave.from);
               const hTo = Math.min(Math.max(edgeB, hiddenEdge), eave.to);
               if (hTo - hFrom > 1e-6) {
-                const hbFrom = eave.y != null ? lay.y + eave.y : bottomAt(hFrom);
-                const hbTo = eave.y != null ? lay.y + eave.y : bottomAt(hTo);
+                const hbFrom = eave.y != null ? lay.y + (lay.h - eave.y) : bottomAt(hFrom);
+                const hbTo = eave.y != null ? lay.y + (lay.h - eave.y) : bottomAt(hTo);
                 overhangMarkup += '<polygon points="' + (lay.x + hFrom).toFixed(4) + ',' + hbFrom.toFixed(4) + ' ' +
                   (lay.x + hTo).toFixed(4) + ',' + hbTo.toFixed(4) + ' ' +
                   (lay.x + hTo).toFixed(4) + ',' + (hbTo + eaveOverhang).toFixed(4) + ' ' +
@@ -647,7 +608,7 @@
                   '" fill="rgba(215,32,42,0.07)" stroke="#c96a70" stroke-width="0.022" stroke-dasharray="0.09 0.07"/>';
               }
               if (hiddenEdge >= eave.from - 1e-6 && hiddenEdge <= eave.to + 1e-6) {
-                const lineBottom = eave.y != null ? lay.y + eave.y : bottomAt(hiddenEdge);
+                const lineBottom = eave.y != null ? lay.y + (lay.h - eave.y) : bottomAt(hiddenEdge);
                 overhangMarkup += '<line x1="' + (lay.x + hiddenEdge).toFixed(4) + '" y1="' +
                   lineBottom.toFixed(4) + '" x2="' + (lay.x + hiddenEdge).toFixed(4) +
                   '" y2="' + (lineBottom + eaveOverhang).toFixed(4) +
@@ -667,7 +628,7 @@
         slopeCutouts.forEach(function (cut) {
           if (!cut || !Array.isArray(cut.points) || cut.points.length < 3) return;
           const pts = cut.points.map(function (p) {
-            return [lay.x + KP.num(p.x), lay.y + KP.num(p.y)];
+            return [lay.x + KP.num(p.x), lay.y + (lay.h - KP.num(p.y))];
           });
           body += '<polygon points="' + pointsAttr(pts) +
             '" fill="#ffffff" stroke="#b23a48" stroke-width="0.04" ' +
@@ -694,8 +655,8 @@
             const b = localPoints[(index + 1) % localPoints.length];
             const style = EDGE_STYLES[slope.edgeTypes[index]];
             if (!style || !a || !b) return;
-            body += '<line x1="' + (lay.x + a[0]).toFixed(4) + '" y1="' + (lay.y + a[1]).toFixed(4) +
-              '" x2="' + (lay.x + b[0]).toFixed(4) + '" y2="' + (lay.y + b[1]).toFixed(4) +
+            body += '<line x1="' + (lay.x + a[0]).toFixed(4) + '" y1="' + (lay.y + (lay.h - a[1])).toFixed(4) +
+              '" x2="' + (lay.x + b[0]).toFixed(4) + '" y2="' + (lay.y + (lay.h - b[1])).toFixed(4) +
               '" stroke="' + style.color + '" stroke-width="' + style.width + '"' +
               (style.dash ? ' stroke-dasharray="' + style.dash + '"' : '') +
               ' stroke-linecap="round"/>';
