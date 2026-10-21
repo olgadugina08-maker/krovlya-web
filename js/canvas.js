@@ -331,8 +331,8 @@
 
       const padLeft = 1.5;
       const padRight = 1.0;
-      const padTop = 1.5;
-      const padBottom = 1.7;
+      const padTop = 2.1;
+      const padBottom = 3.9;
 
       const ux = underlay ? KP.num(underlay.x) : 0;
       const uy = underlay ? KP.num(underlay.y) : 0;
@@ -651,6 +651,61 @@
         body += '<polygon points="' + polygon + '" fill="none" stroke="' + outline +
                 '" stroke-width="' + outlineWidth + '" stroke-linejoin="round"/>';
 
+        // Размеры сторон контура: буква, длина и пометка «без доборов».
+        if (drawSettings.showDimensions) {
+          const letterSource = 'abcdefghijklmnop';
+          const localPts = KP.slopePoints(slope);
+          const screenPts = localPts.map(function (p) {
+            return [lay.x + p[0], lay.y + (lay.h - p[1])];
+          });
+          const centroid = screenPts.reduce(function (sum, p) {
+            return [sum[0] + p[0], sum[1] + p[1]];
+          }, [0, 0]);
+          centroid[0] /= Math.max(1, screenPts.length);
+          centroid[1] /= Math.max(1, screenPts.length);
+          const legend = [];
+          screenPts.forEach(function (a, index) {
+            const b = screenPts[(index + 1) % screenPts.length];
+            if (!a || !b) return;
+            const dx = b[0] - a[0];
+            const dy = b[1] - a[1];
+            const length = Math.hypot(dx, dy);
+            if (length < 0.3) return;
+            const letter = letterSource[index] || String(index + 1);
+            let nx = (a[0] + b[0]) / 2 - centroid[0];
+            let ny = (a[1] + b[1]) / 2 - centroid[1];
+            const norm = Math.hypot(nx, ny) || 1;
+            nx /= norm;
+            ny /= norm;
+            const off = 0.42;
+            const ax = a[0] + nx * off;
+            const ay = a[1] + ny * off;
+            const bx = b[0] + nx * off;
+            const by = b[1] + ny * off;
+            body += '<line x1="' + a[0].toFixed(4) + '" y1="' + a[1].toFixed(4) + '" x2="' + ax.toFixed(4) +
+                    '" y2="' + ay.toFixed(4) + '" stroke="#b0b0b0" stroke-width="0.012"/>';
+            body += '<line x1="' + b[0].toFixed(4) + '" y1="' + b[1].toFixed(4) + '" x2="' + bx.toFixed(4) +
+                    '" y2="' + by.toFixed(4) + '" stroke="#b0b0b0" stroke-width="0.012"/>';
+            body += '<line x1="' + ax.toFixed(4) + '" y1="' + ay.toFixed(4) + '" x2="' + bx.toFixed(4) +
+                    '" y2="' + by.toFixed(4) + '" stroke="#9a9a9a" stroke-width="0.016"/>';
+            let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            if (angle > 90 || angle < -90) angle += 180;
+            const tx = (ax + bx) / 2 + nx * 0.22;
+            const ty = (ay + by) / 2 + ny * 0.22;
+            body += '<text x="' + tx.toFixed(4) + '" y="' + ty.toFixed(4) +
+                    '" text-anchor="middle" dominant-baseline="middle" font-size="0.19" ' +
+                    'font-family="Geologica, Segoe UI, Arial, sans-serif" fill="#4a4a4a" ' +
+                    'transform="rotate(' + angle.toFixed(2) + ' ' + tx.toFixed(4) + ' ' + ty.toFixed(4) + ')">' +
+                    letter + ' = ' + KP.fmt(length, 3) + '</text>';
+            legend.push(letter + ' = ' + KP.fmt(length, 3) + '; без доборов');
+          });
+          legend.forEach(function (row, index) {
+            body += '<text x="' + lay.x.toFixed(4) + '" y="' + (lay.y + lay.h + 1.78 + index * 0.26).toFixed(4) +
+                    '" font-size="0.19" font-family="Geologica, Segoe UI, Arial, sans-serif" fill="#4a4a4a">' +
+                    row + '</text>';
+          });
+        }
+
         // Типы сторон: карниз, конёк, ребро, ендова, торец
         if (slope.shape === 'polygon' && Array.isArray(slope.edgeTypes)) {
           const localPoints = KP.slopePoints(slope);
@@ -690,42 +745,13 @@
 
         // Подпись (порядковый номер не дублируем — он уже в названии «Скат №N»)
         const cx = lay.x + lay.w / 2;
-        body += '<text data-slope-label="name" x="' + cx.toFixed(4) + '" y="' + (lay.y - 0.85).toFixed(4) + '" text-anchor="middle" font-size="0.30" ' +
+        body += '<text data-slope-label="name" x="' + cx.toFixed(4) + '" y="' + (lay.y - 1.52).toFixed(4) + '" text-anchor="middle" font-size="0.30" ' +
                 'font-weight="600" font-family="Geologica, Segoe UI, Arial, sans-serif" fill="#272727">' +
                 esc(slope.name) + '</text>';
         if (drawSettings.showDimensions) {
-          body += '<text data-slope-label="meta" x="' + cx.toFixed(4) + '" y="' + (lay.y - 0.45).toFixed(4) + '" text-anchor="middle" font-size="0.21" ' +
+          body += '<text data-slope-label="meta" x="' + cx.toFixed(4) + '" y="' + (lay.y - 1.12).toFixed(4) + '" text-anchor="middle" font-size="0.21" ' +
                   'font-family="Geologica, Segoe UI, Arial, sans-serif" fill="#6f6f6f">' +
                   esc(material.name) + ' · ' + KP.fmt(Math.max(0, KP.shapeArea(slope) - KP.cutoutArea(slope))) + ' м²</text>';
-
-          // Размер по низу
-          const by = lay.y + lay.h + 0.62;
-          body += '<line x1="' + lay.x.toFixed(4) + '" y1="' + by.toFixed(4) +
-                  '" x2="' + (lay.x + lay.w).toFixed(4) + '" y2="' + by.toFixed(4) +
-                  '" stroke="#8a8a8a" stroke-width="0.025"/>';
-          body += '<line x1="' + lay.x.toFixed(4) + '" y1="' + (by - 0.12).toFixed(4) +
-                  '" x2="' + lay.x.toFixed(4) + '" y2="' + (by + 0.12).toFixed(4) +
-                  '" stroke="#8a8a8a" stroke-width="0.025"/>';
-          body += '<line x1="' + (lay.x + lay.w).toFixed(4) + '" y1="' + (by - 0.12).toFixed(4) +
-                  '" x2="' + (lay.x + lay.w).toFixed(4) + '" y2="' + (by + 0.12).toFixed(4) +
-                  '" stroke="#8a8a8a" stroke-width="0.025"/>';
-          body += '<text x="' + cx.toFixed(4) + '" y="' + (by + 0.42).toFixed(4) +
-                  '" text-anchor="middle" font-size="0.24" font-family="Geologica, Segoe UI, Arial, sans-serif" ' +
-                  'fill="#4a4a4a">' + KP.fmt(lay.w) + ' м</text>';
-
-          // Размер по высоте
-          const lx = lay.x - 0.62;
-          body += '<line x1="' + lx.toFixed(4) + '" y1="' + lay.y.toFixed(4) + '" x2="' + lx.toFixed(4) +
-                  '" y2="' + (lay.y + lay.h).toFixed(4) + '" stroke="#8a8a8a" stroke-width="0.025"/>';
-          body += '<line x1="' + (lx - 0.12).toFixed(4) + '" y1="' + lay.y.toFixed(4) + '" x2="' + (lx + 0.12).toFixed(4) +
-                  '" y2="' + lay.y.toFixed(4) + '" stroke="#8a8a8a" stroke-width="0.025"/>';
-          body += '<line x1="' + (lx - 0.12).toFixed(4) + '" y1="' + (lay.y + lay.h).toFixed(4) +
-                  '" x2="' + (lx + 0.12).toFixed(4) + '" y2="' + (lay.y + lay.h).toFixed(4) +
-                  '" stroke="#8a8a8a" stroke-width="0.025"/>';
-          body += '<text x="' + (lx - 0.18).toFixed(4) + '" y="' + (lay.y + lay.h / 2).toFixed(4) +
-                  '" text-anchor="middle" font-size="0.24" font-family="Geologica, Segoe UI, Arial, sans-serif" ' +
-                  'fill="#4a4a4a" transform="rotate(-90 ' + (lx - 0.18).toFixed(4) + ' ' +
-                  (lay.y + lay.h / 2).toFixed(4) + ')">' + KP.fmt(lay.h) + ' м</text>';
         }
 
         // Маркеры редактирования (для повёрнутой раскладки отключаем — меняйте контур в объекте DWG)
