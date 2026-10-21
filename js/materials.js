@@ -77,6 +77,7 @@ KP.defaultMaterialSource = function (type, name, id) {
       roundingMm: 10,
       eaveOverhang: 50,
       waveStep: 0.35,
+      trimAllowance: 120,
       allowedLengths: KP.classicAllowedLengths
     };
   }
@@ -88,6 +89,7 @@ KP.defaultMaterialSource = function (type, name, id) {
     roundingMm: type === 'tile' ? 10 : 0,
     eaveOverhang: type === 'tile' ? 50 : 0,
     waveStep: type === 'tile' ? 0.35 : (type === 'sheet' ? 0.2 : 0),
+    trimAllowance: type === 'tile' ? 120 : 0,
     allowedLengths: ''
   };
 };
@@ -113,6 +115,7 @@ KP.defaultMaterials = function () {
       price: 690,
       color: 'RAL 8017 шоколад',
       waveStep: 0.35,
+      trimAllowance: 120,
       thickness: 0.5
     },
     {
@@ -134,6 +137,7 @@ KP.defaultMaterials = function () {
       price: 720,
       color: 'RAL 3005 вишня',
       waveStep: 0.35,
+      trimAllowance: 120,
       thickness: 0.5
     },
     {
@@ -155,6 +159,7 @@ KP.defaultMaterials = function () {
       price: 540,
       color: 'RAL 6005 зелёный',
       waveStep: 0.20,
+      trimAllowance: 0,
       thickness: 0.5
     },
     {
@@ -176,6 +181,7 @@ KP.defaultMaterials = function () {
       price: 610,
       color: 'оцинкованный',
       waveStep: 0.25,
+      trimAllowance: 0,
       thickness: 0.5
     },
     {
@@ -197,6 +203,7 @@ KP.defaultMaterials = function () {
       price: 480,
       color: 'RAL 8017 шоколад',
       waveStep: 0,
+      trimAllowance: 0,
       thickness: 0.45
     }
   ];

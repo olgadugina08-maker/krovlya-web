@@ -111,7 +111,7 @@
       return '<table class="pr-lengths-table"><thead><tr><th>№</th><th>Длина</th><th>Шт.</th></tr></thead><tbody>' +
         group.map(function (item, index) {
           return '<tr><td>' + (groupIndex * half + index + 1) + '</td><td>' +
-            KP.fmt(item.length) + '</td><td>' + item.count + '</td></tr>';
+            KP.fmt(item.length, 3) + '</td><td>' + item.count + '</td></tr>';
         }).join('') + '</tbody></table>';
     }).join('') + '</div>';
   }
@@ -157,6 +157,7 @@
         ['Направление раскладки', layoutDirectionLabel(slope)],
         ['Ширина листа полезная / общая, м', KP.fmt(material.usefulWidth, 3) + ' / ' + KP.fmt(material.fullWidth, 3)],
         ['Шаг волны, мм', KP.fmt(KP.num(material.waveStep) * 1000, 0)],
+        ['Припуск на подрезку, м', KP.fmt(KP.num(material.trimAllowance) / 1000, 3)],
         ['Перекрытие замковое, м', KP.fmt(KP.num(material.lockOverlap) / 1000, 2)],
         ['Округление, м', KP.fmt(rounding, 2)],
         ['Смещение гориз. / верт., м', KP.fmt(KP.num(slope.offsetX), 2) + ' / ' + KP.fmt(KP.num(slope.offsetY), 2)],
@@ -217,12 +218,16 @@
     const waveStepValue = calc.usage.length && sameMaterialNumber('waveStep')
       ? KP.fmt(KP.num(firstMaterial.waveStep) * 1000, 0)
       : 'по материалам';
+    const trimAllowanceValue = calc.usage.length && sameMaterialNumber('trimAllowance')
+      ? KP.fmt(KP.num(firstMaterial.trimAllowance) / 1000, 3)
+      : 'по материалам';
     const parameterRows = [
       ['Расчёт №', String(project.number || project.id || '—') + ' от ' + String(project.date || KP.today())],
       ['Вид расчёта', calcTypes.length ? calcTypes.join('; ') : '—'],
       ['Площадка', project.name || '—'],
       ['Ширина листа полезная / общая, м', widthValue],
       ['Шаг волны, мм', waveStepValue],
+      ['Припуск на подрезку, м', trimAllowanceValue],
       ['Перекрытие замковое, м', overlapValue],
       ['Округление, м', roundingValue],
       ['Карнизный свес, м', eaveOverhangValue]
@@ -255,7 +260,7 @@
     const lengthRows = Array.from(lengthMap.values()).sort(function (a, b) {
       return a.length - b.length;
     }).map(function (item, index) {
-      return [index + 1, KP.fmt(item.length), String(item.count)];
+      return [index + 1, KP.fmt(item.length, 3), String(item.count)];
     });
     const lengthsHtml = lengthRows.length
       ? '<h2>Список длин</h2>' + table(['№', 'Длина, м', 'Кол-во, шт'], lengthRows)

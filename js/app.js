@@ -291,6 +291,7 @@
       lockOverlap: fallbackSource.lockOverlap,
       roundingMm: fallbackSource.roundingMm,
       eaveOverhang: fallbackSource.eaveOverhang,
+      trimAllowance: fallbackSource.trimAllowance,
       allowedLengths: fallbackSource.allowedLengths
     };
     const isEdit = !!existing;
@@ -314,6 +315,7 @@
         '<div class="field"><label>Перекрытие замковое, мм</label><input id="mOverlap" type="number" step="1" min="0" value="' + Math.round(KP.num(material.lockOverlap) || 0) + '"></div>' +
         '<div class="field"><label>Величина карнизного свеса, мм</label><input id="mEave" type="number" step="1" min="0" value="' + Math.round(KP.num(material.eaveOverhang) || 0) + '"></div>' +
         '<div class="field"><label>Шаг волны, мм</label><input id="mWave" type="number" step="1" min="0" value="' + Math.round(KP.num(material.waveStep) * 1000) + '"></div>' +
+        '<div class="field"><label>Припуск на подрезку, мм</label><input id="mTrim" type="number" step="5" min="0" value="' + Math.round(KP.num(material.trimAllowance) || 0) + '"></div>' +
         '<div class="field"><label>Толщина, мм</label><input id="mThick" type="number" step="0.05" min="0" value="' + material.thickness + '"></div>' +
         '<div class="field"><label>Длина min, мм</label><input id="mMin" type="number" step="1" min="0" value="' + Math.round(KP.num(material.minLength) * 1000) + '"></div>' +
         '<div class="field"><label>Длина max, мм</label><input id="mMax" type="number" step="1" min="1" value="' + Math.round(KP.num(material.maxLength) * 1000) + '"></div>' +
@@ -376,6 +378,7 @@
         price: KP.num($('#mPrice').value) || 0,
         color: $('#mColor').value.trim(),
         waveStep: Number(((KP.num($('#mWave').value) || 0) / 1000).toFixed(3)),
+        trimAllowance: Math.max(0, KP.num($('#mTrim').value)) || 0,
         thickness: KP.num($('#mThick').value) || 0
       };
 
@@ -2126,7 +2129,7 @@
     }
     table.innerHTML = '<thead><tr><th>Длина, м</th><th>Кол-во</th><th>Полная, м²</th></tr></thead><tbody>' +
       row.list.map(function (item) {
-        return '<tr><td>' + KP.fmt(item.length) + '</td><td>' + item.count + '</td><td>' +
+        return '<tr><td>' + KP.fmt(item.length, 3) + '</td><td>' + item.count + '</td><td>' +
           KP.fmt(item.length * row.fullWidth * item.count) + '</td></tr>';
       }).join('') +
       '<tr class="total-row"><td>Итого</td><td>' + row.sheetCount + '</td><td>' +
@@ -2274,7 +2277,7 @@
           '<table class="data-table spec-lengths"><thead><tr><th>№</th><th>Длина, м</th>' +
           '<th>Кол-во, шт</th></tr></thead><tbody>' +
           lengthRows.map(function (item, index) {
-            return '<tr><td>' + (index + 1) + '</td><td>' + fmt(item.length) +
+            return '<tr><td>' + (index + 1) + '</td><td>' + fmt(item.length, 3) +
               '</td><td>' + item.count + '</td></tr>';
           }).join('') +
           '<tr class="total-row"><td>Итого</td><td></td><td>' + calc.totals.sheets +

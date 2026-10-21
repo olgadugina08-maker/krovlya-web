@@ -96,7 +96,7 @@
       ['nomenclatureCode', 'calcType', 'coating', 'allowedLengths'].forEach(function (key) {
         if (typeof item[key] !== 'string') item[key] = source[key];
       });
-      ['lockOverlap', 'roundingMm', 'eaveOverhang', 'waveStep'].forEach(function (key) {
+      ['lockOverlap', 'roundingMm', 'eaveOverhang', 'waveStep', 'trimAllowance'].forEach(function (key) {
         if (!Number.isFinite(Number(item[key]))) item[key] = source[key];
       });
       if (typeof item.forbiddenLengths !== 'string') {
@@ -470,11 +470,39 @@
     const overlap = Math.max(0, KP.num(material.lockOverlap) / 1000);
     const eave = Math.max(0, KP.num(material.eaveOverhang) / 1000);
     const roundStep = KP.num(rounding);
+    const total = Math.max(0, KP.num(height)) + eave;
+    const step = KP.num(material.waveStep);
+    const allowance = Math.max(0, KP.num(material.trimAllowance) / 1000);
+    // Основное правило (как в примерах раскладки): длина листа кратна шагу
+    // волны плюс припуск на подрезку, но не меньше одной волны.
+    if (step > 0.001) {
+      const waveLength = function (value) {
+        const waves = Math.max(1, Math.round(Math.max(0, value) / step));
+        return waves * step + allowance;
+      };
+      const single = waveLength(total);
+      if (single <= maxLength + 1e-9) {
+        return [Math.max(minLength, Number(single.toFixed(3)))];
+      }
+      const maxWaves = Math.max(1, Math.floor((maxLength - allowance) / step + 1e-9));
+      const full = Math.min(maxLength, maxWaves * step + allowance);
+      const lengths = [];
+      let rest = total;
+      let guard = 0;
+      while (rest > maxLength + 1e-9 && guard++ < 20) {
+        lengths.push(Number(full.toFixed(3)));
+        rest -= Math.max(0.01, full - overlap);
+      }
+      let topLength = waveLength(rest);
+      if (topLength > maxLength + 1e-9) topLength = full;
+      lengths.push(Math.max(minLength, Number(topLength.toFixed(3))));
+      return lengths;
+    }
     const rows = KP.layoutRows(height, material);
     const coverPerFull = Math.max(0.01, maxLength - overlap);
     const lengths = [];
     for (let r = 0; r < rows - 1; r++) lengths.push(maxLength);
-    let lastLength = (Math.max(0, KP.num(height)) + eave) - (rows - 1) * coverPerFull;
+    let lastLength = total - (rows - 1) * coverPerFull;
     if (rows > 1 && lastLength < minLength) {
       const deficit = minLength - lastLength;
       lengths[lengths.length - 1] = Math.max(0.01, lengths[lengths.length - 1] - deficit);
